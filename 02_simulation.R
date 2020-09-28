@@ -5,7 +5,8 @@ package_list <- list("tidyverse",
                      "RColorBrewer",
                      "glue",
                      "patchwork",
-                     "readxl")
+                     "readxl", 
+                     "glue")
 
 # Call libraries
 for (package in package_list) {
@@ -15,6 +16,9 @@ for (package in package_list) {
 # Clean up
 rm(package_list, package)
 
+
+## PLOT FORMATTING ------------------------------------------------------------
+dog_pal <- c('#fef0d9','#fdcc8a','#fc8d59','#d7301f')
 
 ### FUNCTIONS -----------------------------------------------------------------
 invTriangleCDF <- function(P, value_min, value_ml, value_max){
@@ -80,8 +84,6 @@ cost_assumptions <- read_xlsx(here::here('data', 'assumptions.xlsx'), sheet = 'c
 fee_assumptions <- read_xlsx(here::here('data', 'assumptions.xlsx'), sheet = 'fees')
 
 
-
-
 ### SIMULATE VARIABLES --------------------------------------------------------
 
 # Number of simulations
@@ -104,121 +106,215 @@ assumptions_4 <- SimulateVariables(assumptions)
 ## Year 1 
 # Only year with dev costs & google play fixed cost but no staff salaries
 year_1 <- assumptions_1 %>% 
-  mutate(num_dogs_1 = dogs$dog_1,
+  mutate(year = 1,
+         num_dogs = dogs$dog_1,
          service_providers = pet_cos * dogs$dog_1/dogs$dog_4,
-         rev_b2c_1 = num_dogs_1 * app_penetration * spend_per_dog * 
+         rev_b2c = num_dogs * app_penetration * spend_per_dog * 
            pct_spend_on_app * pct_service_fee,
-         rev_listing_1 = service_providers * service_penetration * listing_fee*12,
-         rev_ad_1 = service_providers * service_penetration * pct_ad * ad_fee * 12) %>% 
-  mutate(cost_dev_1 = dev_cost,
-         cost_deploy_1 = cloud_cost + apple_fee + google_fee + domain_cost,
-         cost_transactions_1 = rev_b2c_1/pct_service_fee/spend_per_service * paypal_fixed 
-         + rev_b2c_1 * paypal_var,
-         cost_marketing_1 = social_ad + event_ad + store_ad,
-         cost_staff_1 = 0) %>% 
-  mutate(rev_1 = rev_b2c_1 + rev_listing_1 + rev_ad_1,
-         cost_1 = cost_dev_1 + cost_deploy_1 +cost_transactions_1 
-        + cost_marketing_1 + cost_staff_1,
-         gross_profit_1 = rev_1-cost_1)
+         rev_listing = service_providers * service_penetration * listing_fee*12,
+         rev_ad = service_providers * service_penetration * pct_ad * ad_fee * 12) %>% 
+  mutate(cost_dev = dev_cost,
+         cost_deploy = cloud_cost + apple_fee + google_fee + domain_cost,
+         cost_transactions = rev_b2c/pct_service_fee/spend_per_service * paypal_fixed 
+         + rev_b2c * paypal_var,
+         cost_marketing = social_ad + event_ad + store_ad,
+         cost_staff = 0) %>% 
+  mutate(rev = rev_b2c + rev_listing + rev_ad,
+         cost = cost_dev + cost_deploy +cost_transactions
+        + cost_marketing + cost_staff,
+         gross_profit = rev-cost)
 
 ## Year 2 
 # Staff = 1 sales, 1 senior dev
 year_2 <- assumptions_2 %>% 
-  mutate(num_dogs_2 = dogs$dog_2,
+  mutate(year = 2,
+         num_dogs = dogs$dog_2,
          service_providers = pet_cos * dogs$dog_2/dogs$dog_4,
-         rev_b2c_2 = num_dogs_2 * app_penetration * spend_per_dog 
+         rev_b2c = num_dogs * app_penetration * spend_per_dog 
           * pct_spend_on_app * pct_service_fee,
-         rev_listing_2 = service_providers * service_penetration * listing_fee * 12,
-         rev_ad_2 = service_providers * service_penetration * pct_ad * ad_fee * 12) %>% 
-  mutate(cost_dev_2 = 0,
-         cost_deploy_2 = (cloud_cost + apple_fee + google_fee + domain_cost) 
+         rev_listing = service_providers * service_penetration * listing_fee * 12,
+         rev_ad = service_providers * service_penetration * pct_ad * ad_fee * 12) %>% 
+  mutate(cost_dev = 0,
+         cost_deploy = (cloud_cost + apple_fee + google_fee + domain_cost) 
           * dogs$dog_2/dogs$dog_1,
-         cost_transactions_2 = rev_b2c_2/pct_service_fee/spend_per_service * paypal_fixed 
-          + rev_b2c_2 * paypal_var,
-         cost_marketing_2 = (social_ad + event_ad + store_ad) 
+         cost_transactions = rev_b2c/pct_service_fee/spend_per_service * paypal_fixed 
+          + rev_b2c * paypal_var,
+         cost_marketing = (social_ad + event_ad + store_ad) 
           * dogs$dog_2/dogs$dog_1,
-         cost_staff_2 = (sales_sal + sr_dev_sal)*1.095) %>% 
-  mutate(rev_2 = rev_b2c_2 + rev_listing_2 + rev_ad_2,
-         cost_2 = cost_dev_2 + cost_deploy_2 + cost_transactions_2 
-          + cost_marketing_2 + cost_staff_2,
-         gross_profit_2 = rev_2-cost_2)
+         cost_staff = (sales_sal + sr_dev_sal)*1.095) %>% 
+  mutate(rev = rev_b2c + rev_listing + rev_ad,
+         cost = cost_dev + cost_deploy + cost_transactions 
+          + cost_marketing + cost_staff,
+         gross_profit = rev-cost)
 
 ## Year 3
 # Staff = 1 sales, 1 head of sales, 1 senior dev, 1 junior dev
 year_3 <- assumptions_3 %>% 
-  mutate(num_dogs_3 = dogs$dog_3,
+  mutate(year = 3,
+         num_dogs = dogs$dog_3,
          service_providers = pet_cos * dogs$dog_3/dogs$dog_4,
-         rev_b2c_3 = num_dogs_3 * app_penetration * spend_per_dog 
+         rev_b2c = num_dogs * app_penetration * spend_per_dog 
          * pct_spend_on_app * pct_service_fee,
-         rev_listing_3 = service_providers * service_penetration * listing_fee * 12,
-         rev_ad_3 = service_providers * service_penetration * pct_ad * ad_fee * 12) %>% 
-  mutate(cost_dev_3 = 0,
-         cost_deploy_3 = (cloud_cost + apple_fee + google_fee + domain_cost) 
+         rev_listing = service_providers * service_penetration * listing_fee * 12,
+         rev_ad = service_providers * service_penetration * pct_ad * ad_fee * 12) %>% 
+  mutate(cost_dev = 0,
+         cost_deploy = (cloud_cost + apple_fee + google_fee + domain_cost) 
          * dogs$dog_3/dogs$dog_1,
-         cost_transactions_3 = rev_b2c_3/pct_service_fee/spend_per_service * paypal_fixed 
-         + rev_b2c_3 * paypal_var,
-         cost_marketing_3 = (social_ad + event_ad + store_ad) 
+         cost_transactions = rev_b2c/pct_service_fee/spend_per_service * paypal_fixed 
+         + rev_b2c * paypal_var,
+         cost_marketing = (social_ad + event_ad + store_ad) 
          * dogs$dog_3/dogs$dog_1,
-         cost_staff_3 = (sales_sal + sr_dev_sal + market_sal + jr_dev_sal)*1.095) %>% 
-  mutate(rev_3 = rev_b2c_3 + rev_listing_3 + rev_ad_3,
-         cost_3 = cost_dev_3 + cost_deploy_3 + cost_transactions_3 
-         + cost_marketing_3 + cost_staff_3,
-         gross_profit_3 = rev_3-cost_3)
+         cost_staff = (sales_sal + sr_dev_sal + market_sal + jr_dev_sal)*1.095) %>% 
+  mutate(rev = rev_b2c + rev_listing + rev_ad,
+         cost = cost_dev + cost_deploy + cost_transactions 
+         + cost_marketing + cost_staff,
+         gross_profit = rev-cost)
 
 
 ## Year 4
 # Staff = as for year 3
 year_4 <- assumptions_4 %>% 
-  mutate(num_dogs_4 = dogs$dog_4,
+  mutate(year = 4,
+         num_dogs = dogs$dog_4,
          service_providers = pet_cos * dogs$dog_4/dogs$dog_4,
-         rev_b2c_4 = num_dogs_4 * app_penetration * spend_per_dog 
+         rev_b2c = num_dogs * app_penetration * spend_per_dog 
          * pct_spend_on_app * pct_service_fee,
-         rev_listing_4 = service_providers * service_penetration * listing_fee * 12,
-         rev_ad_4 = service_providers * service_penetration * pct_ad * ad_fee * 12) %>% 
-  mutate(cost_dev_4 = 0,
-         cost_deploy_4 = (cloud_cost + apple_fee + google_fee + domain_cost) 
+         rev_listing = service_providers * service_penetration * listing_fee * 12,
+         rev_ad = service_providers * service_penetration * pct_ad * ad_fee * 12) %>% 
+  mutate(cost_dev = 0,
+         cost_deploy = (cloud_cost + apple_fee + google_fee + domain_cost) 
          * dogs$dog_4/dogs$dog_1,
-         cost_transactions_4 = rev_b2c_4/pct_service_fee/spend_per_service * paypal_fixed 
-         + rev_b2c_4 * paypal_var,
-         cost_marketing_4 = (social_ad + event_ad + store_ad) 
+         cost_transactions = rev_b2c/pct_service_fee/spend_per_service * paypal_fixed 
+         + rev_b2c * paypal_var,
+         cost_marketing = (social_ad + event_ad + store_ad) 
          * dogs$dog_4/dogs$dog_1,
-         cost_staff_4 = (sales_sal + sr_dev_sal + market_sal + jr_dev_sal)*1.095) %>% 
-  mutate(rev_4 = rev_b2c_4 + rev_listing_4 + rev_ad_4,
-         cost_4 = cost_dev_4 + cost_deploy_4 + cost_transactions_4 
-         + cost_marketing_4 + cost_staff_4,
-         gross_profit_4 = rev_4-cost_4)
+         cost_staff = (sales_sal + sr_dev_sal + market_sal + jr_dev_sal)*1.095) %>% 
+  mutate(rev = rev_b2c + rev_listing + rev_ad,
+         cost = cost_dev + cost_deploy + cost_transactions 
+         + cost_marketing + cost_staff,
+         gross_profit = rev-cost)
 
 ### FINANCIAL MODEL -----------------------------------------------------------
 
-financials <- year_1[, c('rev_1', 'cost_1', 'gross_profit_1')] %>% 
-  cbind(year_2[, c('rev_2', 'cost_2', 'gross_profit_2')]) %>% 
-  cbind(year_3[, c('rev_3', 'cost_3', 'gross_profit_3')]) %>% 
-  cbind(year_4[, c('rev_4', 'cost_4', 'gross_profit_4')])
+# Join annual models
+financials <- year_1[, c('year', 'rev', 'cost', 'gross_profit')] %>% 
+  rbind(year_2[, c('year', 'rev', 'cost', 'gross_profit')]) %>% 
+  rbind(year_3[, c('year', 'rev', 'cost', 'gross_profit')]) %>% 
+  rbind(year_4[, c('year', 'rev', 'cost', 'gross_profit')])
 
+
+### FUNCTIONISING
 
 # Year 4 rev PDF
-financials %>% 
-  ggplot() +
-  geom_density(aes(rev_4/10^6), colour = 'blue', fill = 'blue', alpha = 0.5) +
-  labs(title = 'Year 4 Revenue (Australia wide roll out)',
-       x = 'A$ million',
-       y = 'Density function') +
-  theme_minimal() +
-  # scale_x_continuous(limits = c(20, 38), breaks = c(seq(20, 38, 1))) +
-  # scale_y_continuous(limits = c(0, 0.2), breaks = c(seq(0, 0.2, 0.05))) +
-  theme(panel.grid.minor = element_blank()) +
-  ggsave(here::here('plots', 'rev_4.png'), width = 8, height = 8*9/16)
+RevPDFPlot <- function(df, yr) {
+  # Creates PDF of revenue for selected year
+  # Inputs  - df = financials dataframe
+  # Outputs - plots save to plots folder
+  
+  description <- case_when(yr == 1 ~'Inner Sydney',
+                           yr == 2 ~'Sydney + Melbourne',
+                           yr == 3 ~'All Major Cities',
+                           yr == 4 ~'Australia-Wide')
+  
+  plot_title = glue('Year {year} Revenue ({desc})', year = yr, desc = description)
+  file_name = glue('rev_{year}.png', year = yr)
+  
+  df %>% 
+    filter(year == yr) %>% 
+    ggplot() +
+    geom_density(aes(rev/10^6), colour = dog_pal[4], fill = dog_pal[4], alpha = 0.50) +
+    labs(title = plot_title,
+         x = 'A$ million',
+         y = '') +
+    theme_minimal() +
+    theme(panel.grid.minor = element_blank(), axis.text.y = element_blank()) +
+    scale_x_continuous(limits = c(0, 10), breaks = c(seq(0, 10, 2))) +
+    theme(panel.grid.minor = element_blank()) +
+    ggsave(here::here('plots', file_name), width = 8, height = 8*9/16)
+}
 
-# Year 4 gross profit PDF
-financials %>% 
-  ggplot() +
-  geom_density(aes(gross_profit_4/10^6), colour = 'darkgreen', fill = 'darkgreen', alpha = 0.5) +
-  labs(title = 'Year 4 Gross Profit (Australia wide roll out)',
-       x = 'A$ million',
-       y = 'Density function') +
-  theme_minimal() +
-  # scale_x_continuous(limits = c(20, 38), breaks = c(seq(20, 38, 1))) +
-  # scale_y_continuous(limits = c(0, 0.2), breaks = c(seq(0, 0.2, 0.05))) +
-  theme(panel.grid.minor = element_blank()) +
-  ggsave(here::here('plots', 'gp_4.png'), width = 8, height = 8*9/16)
+
+rev_1 <- RevPDFPlot(financials, 1)
+rev_2 <- RevPDFPlot(financials, 2)
+rev_3 <- RevPDFPlot(financials, 3)
+rev_4 <- RevPDFPlot(financials, 4)
+
+# Patch together for report
+rev_plots <- rev_1/rev_2 /rev_3 /rev_4
+ggsave(here::here('plots', 'rev_pdf.png'), rev_plots, width = 8, height = 8)
+
+
+CostPDFPlot <- function(df, yr) {
+  # Creates PDF of revenue for selected year
+  # Inputs  - df = financials dataframe
+  # Outputs - plots save to plots folder
+  
+  description <- case_when(yr == 1 ~'Inner Sydney',
+                           yr == 2 ~'Sydney + Melbourne',
+                           yr == 3 ~'All Major Cities',
+                           yr == 4 ~'Australia-Wide')
+  
+  plot_title = glue('Year {year} Costs ({desc})', year = yr, desc = description)
+  file_name = glue('cost_{year}.png', year = yr)
+  
+  df %>% 
+    filter(year == yr) %>% 
+    ggplot() +
+    geom_density(aes(cost/10^6), colour = dog_pal[3], fill = dog_pal[3], alpha = 0.50) +
+    labs(title = plot_title,
+         x = 'A$ million',
+         y = '') +
+    theme_minimal() +
+    theme(panel.grid.minor = element_blank(), axis.text.y = element_blank()) +
+    scale_x_continuous(limits = c(0, 3), breaks = c(seq(0, 3, 0.5))) +
+    theme(panel.grid.minor = element_blank()) +
+    ggsave(here::here('plots', file_name), width = 8, height = 8*9/16)
+}
+
+
+cost_1 <- CostPDFPlot(financials, 1)
+cost_2 <- CostPDFPlot(financials, 2)
+cost_3 <- CostPDFPlot(financials, 3)
+cost_4 <- CostPDFPlot(financials, 4)
+
+# Patch together for report
+cost_plots <- cost_1/cost_2 /cost_3 /cost_4
+ggsave(here::here('plots', 'cost_pdf.png'), cost_plots, width = 8, height = 8)
+
+GPPDFPlot <- function(df, yr) {
+  # Creates PDF of revenue for selected year
+  # Inputs  - df = financials dataframe
+  # Outputs - plots save to plots folder
+  
+  description <- case_when(yr == 1 ~'Inner Sydney',
+                           yr == 2 ~'Sydney + Melbourne',
+                           yr == 3 ~'All Major Cities',
+                           yr == 4 ~'Australia-Wide')
+  
+  plot_title = glue('Year {year} Gross Profit ({desc})', year = yr, desc = description)
+  file_name = glue('cost_{year}.png', year = yr)
+  
+  df %>% 
+    filter(year == yr) %>% 
+    ggplot() +
+    geom_density(aes(gross_profit/10^6), colour = dog_pal[2], fill = dog_pal[2], alpha = 0.50) +
+    labs(title = plot_title,
+         x = 'A$ million',
+         y = '') +
+    theme_minimal() +
+    theme(panel.grid.minor = element_blank(), axis.text.y = element_blank()) +
+    scale_x_continuous(limits = c(-1, 7), breaks = c(seq(-1, 7, 1))) +
+    theme(panel.grid.minor = element_blank()) +
+    ggsave(here::here('plots', file_name), width = 8, height = 8*9/16)
+}
+
+
+gp_1 <- GPPDFPlot(financials, 1)
+gp_2 <- GPPDFPlot(financials, 2)
+gp_3 <- GPPDFPlot(financials, 3)
+gp_4 <- GPPDFPlot(financials, 4)
+
+# Patch together for report
+gp_plots <- gp_1/gp_2 /gp_3 /gp_4
+ggsave(here::here('plots', 'gp_pdf.png'), gp_plots, width = 8, height = 8)
 

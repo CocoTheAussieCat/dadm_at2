@@ -17,8 +17,22 @@ for (package in package_list) {
 rm(package_list, package)
 
 
-## PLOT FORMATTING ------------------------------------------------------------
-dog_pal <- c('#fef0d9','#fdcc8a','#fc8d59','#d7301f')
+### PLOT FORMATTING ------------------------------------------------------------
+dog_theme <- theme_minimal() +
+  theme(axis.title.x = element_text(size = 8),
+        axis.title.y = element_text(size = 8),
+        plot.title = element_text(size = 11, face = "bold"),
+        axis.text = element_text(size = 8),
+        panel.grid.minor = element_blank(),
+        plot.caption = element_text(size = 8, face = 'italic', hjust = 0))
+
+#  Palette
+point_pal <- '#AED4E6' # cyan process
+inner_pal <- '#8C2155' # jazzberry jam (lighter)
+outer_pal <- '#5C1A1B' # caput mortuum (darker)
+
+plot_width = 6
+plot_height = plot_width*6/9
 
 ### FUNCTIONS -----------------------------------------------------------------
 invTriangleCDF <- function(P, value_min, value_ml, value_max){
@@ -203,7 +217,7 @@ financials <- year_1[, c('year', 'rev', 'cost', 'gross_profit')] %>%
   rbind(year_4[, c('year', 'rev', 'cost', 'gross_profit')])
 
 
-### FUNCTIONISING
+### PDF PLOTS -----------------------------------------------------------------
 
 # Year 4 rev PDF
 RevPDFPlot <- function(df, yr) {
@@ -222,15 +236,14 @@ RevPDFPlot <- function(df, yr) {
   df %>% 
     filter(year == yr) %>% 
     ggplot() +
-    geom_density(aes(rev/10^6), colour = dog_pal[4], fill = dog_pal[4], alpha = 0.50) +
+    geom_density(aes(rev/10^6), colour = inner_pal, fill = inner_pal, alpha = 0.50) +
     labs(title = plot_title,
          x = 'A$ million',
          y = '') +
     theme_minimal() +
     theme(panel.grid.minor = element_blank(), axis.text.y = element_blank()) +
     scale_x_continuous(limits = c(0, 10), breaks = c(seq(0, 10, 2))) +
-    theme(panel.grid.minor = element_blank()) +
-    ggsave(here::here('plots', file_name), width = 8, height = 8*9/16)
+    theme(panel.grid.minor = element_blank())
 }
 
 
@@ -260,15 +273,14 @@ CostPDFPlot <- function(df, yr) {
   df %>% 
     filter(year == yr) %>% 
     ggplot() +
-    geom_density(aes(cost/10^6), colour = dog_pal[3], fill = dog_pal[3], alpha = 0.50) +
+    geom_density(aes(cost/10^6), colour = inner_pal, fill = inner_pal, alpha = 0.50) +
     labs(title = plot_title,
          x = 'A$ million',
          y = '') +
     theme_minimal() +
     theme(panel.grid.minor = element_blank(), axis.text.y = element_blank()) +
     scale_x_continuous(limits = c(0, 3), breaks = c(seq(0, 3, 0.5))) +
-    theme(panel.grid.minor = element_blank()) +
-    ggsave(here::here('plots', file_name), width = 8, height = 8*9/16)
+    theme(panel.grid.minor = element_blank())
 }
 
 
@@ -297,15 +309,14 @@ GPPDFPlot <- function(df, yr) {
   df %>% 
     filter(year == yr) %>% 
     ggplot() +
-    geom_density(aes(gross_profit/10^6), colour = dog_pal[2], fill = dog_pal[2], alpha = 0.50) +
+    geom_density(aes(gross_profit/10^6), colour = inner_pal, fill = inner_pal, alpha = 0.50) +
     labs(title = plot_title,
          x = 'A$ million',
          y = '') +
     theme_minimal() +
     theme(panel.grid.minor = element_blank(), axis.text.y = element_blank()) +
     scale_x_continuous(limits = c(-1, 7), breaks = c(seq(-1, 7, 1))) +
-    theme(panel.grid.minor = element_blank()) +
-    ggsave(here::here('plots', file_name), width = 8, height = 8*9/16)
+    theme(panel.grid.minor = element_blank())
 }
 
 
@@ -317,4 +328,153 @@ gp_4 <- GPPDFPlot(financials, 4)
 # Patch together for report
 gp_plots <- gp_1/gp_2 /gp_3 /gp_4
 ggsave(here::here('plots', 'gp_pdf.png'), gp_plots, width = 8, height = 8)
+
+
+### SUMMARISE RESULTS ---------------------------------------------------------
+
+summary <- financials %>% 
+  pivot_longer(cols = c('rev', 'cost', 'gross_profit'), names_to = 'metric') %>% 
+  mutate(metric = as_factor(metric),
+         year = as_factor(glue('Yr {year}', year = year))) %>% 
+  group_by(metric, year) %>% 
+  summarise(qt_5 = quantile(value, 0.05), 
+            qt_25 = quantile(value, 0.25),
+            qt_75 = quantile(value, 0.75),
+            qt_95 = quantile(value, 0.95)) %>% 
+  pivot_longer(cols = c('qt_5', 'qt_25', 'qt_75', 'qt_95'), names_to = 'quantile') %>% 
+  mutate(flag = as_factor(ifelse(quantile %in% c('qt_25', 'qt_75'), '50% likelihood', '90% likelihood')))
+
+# Sample 100 rows from financials for dots in plots
+financials_long <- financials %>% 
+  group_by(year) %>% 
+  sample_n(size = 200) %>%
+  ungroup() %>% 
+  pivot_longer(cols = c('rev', 'cost', 'gross_profit'), names_to = 'metric') %>% 
+  mutate(metric = as_factor(metric),
+         year = as_factor(glue('Yr {year}', year = year)))
+
+## Revenue quartile plot ----------------------------------------------
+
+rev_plot <- summary %>% filter(metric == 'rev')
+rev_long_plot <- financials_long %>% filter(metric == 'rev')
+
+rev_plot %>%
+  ggplot() +
+  geom_jitter(aes(x = year, y = value/10^6),
+              data = rev_long_plot, colour = point_pal,
+              alpha = 0.75, size = 0.75, width = 0.3) +
+  geom_line(aes(x = year, y = value/10^6, group = year), 
+            data = subset(rev_plot, flag == '90% likelihood'),
+            colour = outer_pal, size = 0.5) +
+  geom_point(aes(x = year, y = value/10^6, group = year), 
+             data = subset(rev_plot, flag == '90% likelihood'), 
+             colour = outer_pal, size = 2) +
+  geom_line(aes(x = year, y = value/10^6, group = year), 
+            data = subset(rev_plot, flag == '50% likelihood'),
+            colour = inner_pal, size = 0.5) +
+  geom_point(aes(x = year, y = value/10^6, group = year), 
+             data = subset(rev_plot, flag == '50% likelihood'), 
+             colour = inner_pal, size = 3) +
+  labs(x = '',
+       y = 'Revenue ($ million)',
+      caption = 'Blue points show 100 of 10,000 simulations') +
+  coord_flip() +
+  dog_theme +
+  theme(panel.grid.minor = element_blank(),
+        legend.position = 'None') +
+  annotate(geom = "text", y = 6.7, x = 4.0, label = "95th percentile", hjust = "left", 
+           colour = outer_pal, size = 3) +
+  annotate(geom = "text", y = 2.5, x = 4.0, label = "5th percentile", hjust = "right", 
+           colour = outer_pal, size = 3) +
+  annotate(geom = "text", y = 3.3, x = 4.4, label = "25th percentile", hjust = "centre", 
+           colour = inner_pal, size = 3) +
+  annotate(geom = "text", y = 5.05, x = 4.4, label = "75th percentile", hjust = "centre", 
+           colour = inner_pal, size = 3) +
+  ggsave(here::here('plots', 'rev_qt.png'), width = plot_width, height = plot_height)
+
+## Gross profits quartile plot ----------------------------------------------
+
+gp_plot <- summary %>% filter(metric == 'gross_profit')
+gp_long_plot <- financials_long %>% filter(metric == 'gross_profit')
+
+gp_plot %>%
+  ggplot() +
+  geom_jitter(aes(x = year, y = value/10^6),
+              data = gp_long_plot, colour = point_pal,
+              alpha = 0.75, size = 0.75, width = 0.3) +
+  geom_line(aes(x = year, y = value/10^6, group = year), 
+            data = subset(gp_plot, flag == '90% likelihood'),
+            colour = outer_pal, size = 0.5) +
+  geom_point(aes(x = year, y = value/10^6, group = year), 
+             data = subset(gp_plot, flag == '90% likelihood'), 
+             colour = outer_pal, size = 2) +
+  geom_line(aes(x = year, y = value/10^6, group = year), 
+            data = subset(gp_plot, flag == '50% likelihood'),
+            colour = inner_pal, size = 0.5) +
+  geom_point(aes(x = year, y = value/10^6, group = year), 
+             data = subset(gp_plot, flag == '50% likelihood'), 
+             colour = inner_pal, size = 3) +
+  labs(x = '',
+       y = 'Gross profit ($ million)',
+       caption = 'Blue points show 100 of 10,000 simulations') +
+  coord_flip() +
+  dog_theme +
+  theme(panel.grid.minor = element_blank(),
+        legend.position = 'None') +
+  annotate(geom = "text", y = 4.7, x = 4.0, label = "95th percentile", hjust = "left",
+           colour = outer_pal, size = 3) +
+  annotate(geom = "text", y = 1.0, x = 4.0, label = "5th percentile", hjust = "right",
+           colour = outer_pal, size = 3) +
+  annotate(geom = "text", y = 1.8, x = 4.4, label = "25th percentile", hjust = "centre",
+           colour = inner_pal, size = 3) +
+  annotate(geom = "text", y = 3.8, x = 4.4, label = "75th percentile", hjust = "centre",
+           colour = inner_pal, size = 3) +
+  ggsave(here::here('plots', 'gp_qt.png'), width = plot_width, height = plot_height)
+
+
+
+### DOG SPEND PLOT ----------------------------------------------------------
+ama_source <- 'Source: Pets in Australia: National survey of pets and people, 2019'
+
+spend_org <- read_xlsx(here::here('data', 'dog_spend.xlsx'))
+
+targets <- c("Products or accessories",
+             "Grooming",
+             "Boarding/minding",
+             "Training",
+             "Transport",
+             "Walking",
+             "Other" )
+
+spend <- spend_org %>%
+  mutate(Category = as_factor(Category),
+         Category = fct_lump(Category, 10, 'Other'),
+         Target = ifelse(Category %in% targets, T, F)) %>% 
+  group_by(Category) %>% 
+  arrange(desc(Spend)) %>% 
+  glimpse()
+
+spend %>%
+  ggplot(aes(reorder(Category, Spend), Spend)) +
+  geom_segment(aes(yend = 0, xend = Category, colour = Target)) +
+  geom_point(aes(colour = Target), size = 2) +
+  geom_text(aes(label = round(Spend, 0), colour = Target), nudge_y = 25, size = 3) +
+  labs(x = "",
+       y = "",
+       caption = ama_source) +
+  scale_color_manual(values = c('darkgrey', inner_pal)) +
+  coord_flip() +
+  dog_theme +
+  theme(panel.grid.major = element_blank(),
+        axis.text.x = element_blank(),
+        legend.position = "None") +
+  ggsave(here::here('plots', 'dog_spend.png'), width = plot_width, height = plot_height)
+
+### PROFITABILITY PROBABILITY -------------------------------------------------
+profitability_check <- financials %>% 
+  mutate(profitable = ifelse(gross_profit < 0, 0, 1)) %>% 
+  group_by(year) %>% 
+  summarise(profitable_pct = mean(profitable))
+
+
 

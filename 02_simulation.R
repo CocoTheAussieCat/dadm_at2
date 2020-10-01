@@ -382,13 +382,13 @@ rev_plot %>%
   dog_theme +
   theme(panel.grid.minor = element_blank(),
         legend.position = 'None') +
-  annotate(geom = "text", y = 6.7, x = 4.0, label = "95th percentile", hjust = "left", 
+  annotate(geom = "text", y = 5.2, x = 4.0, label = "95th percentile", hjust = "left", 
            colour = outer_pal, size = 3) +
-  annotate(geom = "text", y = 2.5, x = 4.0, label = "5th percentile", hjust = "right", 
+  annotate(geom = "text", y = 1.9, x = 4.0, label = "5th percentile", hjust = "right", 
            colour = outer_pal, size = 3) +
-  annotate(geom = "text", y = 3.3, x = 4.4, label = "25th percentile", hjust = "centre", 
+  annotate(geom = "text", y = 2.9, x = 4.4, label = "25th percentile", hjust = "centre", 
            colour = inner_pal, size = 3) +
-  annotate(geom = "text", y = 5.05, x = 4.4, label = "75th percentile", hjust = "centre", 
+  annotate(geom = "text", y = 4.05, x = 4.4, label = "75th percentile", hjust = "centre", 
            colour = inner_pal, size = 3) +
   ggsave(here::here('plots', 'rev_qt.png'), width = plot_width, height = plot_height)
 
@@ -421,13 +421,13 @@ gp_plot %>%
   dog_theme +
   theme(panel.grid.minor = element_blank(),
         legend.position = 'None') +
-  annotate(geom = "text", y = 4.7, x = 4.0, label = "95th percentile", hjust = "left",
+  annotate(geom = "text", y = 3.6, x = 4.0, label = "95th percentile", hjust = "left",
            colour = outer_pal, size = 3) +
-  annotate(geom = "text", y = 1.0, x = 4.0, label = "5th percentile", hjust = "right",
+  annotate(geom = "text", y = 0.6, x = 4.0, label = "5th percentile", hjust = "right",
            colour = outer_pal, size = 3) +
-  annotate(geom = "text", y = 1.8, x = 4.4, label = "25th percentile", hjust = "centre",
+  annotate(geom = "text", y = 1.35, x = 4.4, label = "25th percentile", hjust = "centre",
            colour = inner_pal, size = 3) +
-  annotate(geom = "text", y = 3.8, x = 4.4, label = "75th percentile", hjust = "centre",
+  annotate(geom = "text", y = 2.4, x = 4.4, label = "75th percentile", hjust = "centre",
            colour = inner_pal, size = 3) +
   ggsave(here::here('plots', 'gp_qt.png'), width = plot_width, height = plot_height)
 
@@ -472,9 +472,24 @@ spend %>%
 
 ### PROFITABILITY PROBABILITY -------------------------------------------------
 profitability_check <- financials %>% 
-  mutate(profitable = ifelse(gross_profit < 0, 0, 1)) %>% 
+  mutate(profitable = ifelse(gross_profit < 0, 0, 1))
+
+profit_table <- profitability_check%>% 
   group_by(year) %>% 
   summarise(profitable_pct = mean(profitable))
 
 
+loss_avg <- profitability_check %>% 
+  filter(year == 1 & profitable == 0) %>% 
+  summarise(loss_avg = mean(gross_profit))
 
+worst_5_pct_loss <- profitability_check %>% 
+  filter(year == 1 & profitable == 0) %>% 
+  arrange(desc(gross_profit))
+
+quantile(worst_5_pct_loss$gross_profit, 0.05)
+
+### VALUATION -----------------------------------------------------------------
+valuation <- summary %>% 
+  filter(metric == 'rev') %>% 
+  mutate(ratio = 5*10^6/value)

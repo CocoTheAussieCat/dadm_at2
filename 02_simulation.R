@@ -152,7 +152,7 @@ year_2 <- assumptions_2 %>%
          cost_deploy = (cloud_cost + apple_fee + google_fee + domain_cost) 
           * dogs$dog_2/dogs$dog_1,
          cost_transactions = rev_b2c/pct_service_fee/spend_per_service * paypal_fixed 
-          + rev_b2c/pct_service_fee * paypal_var,
+         + rev_b2c/pct_service_fee * paypal_var,
          cost_marketing = (social_ad + event_ad + store_ad) 
           * dogs$dog_2/dogs$dog_1,
          cost_staff = (sales_sal + sr_dev_sal)*1.095) %>% 

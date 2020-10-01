@@ -130,7 +130,7 @@ year_1 <- assumptions_1 %>%
   mutate(cost_dev = dev_cost,
          cost_deploy = cloud_cost + apple_fee + google_fee + domain_cost,
          cost_transactions = rev_b2c/pct_service_fee/spend_per_service * paypal_fixed 
-         + rev_b2c/pct_service_fee * paypal_var,
+         + rev_b2c * paypal_var,
          cost_marketing = social_ad + event_ad + store_ad,
          cost_staff = 0) %>% 
   mutate(rev = rev_b2c + rev_listing + rev_ad,
@@ -152,7 +152,7 @@ year_2 <- assumptions_2 %>%
          cost_deploy = (cloud_cost + apple_fee + google_fee + domain_cost) 
           * dogs$dog_2/dogs$dog_1,
          cost_transactions = rev_b2c/pct_service_fee/spend_per_service * paypal_fixed 
-          + rev_b2c/pct_service_fee * paypal_var,
+          + rev_b2c * paypal_var,
          cost_marketing = (social_ad + event_ad + store_ad) 
           * dogs$dog_2/dogs$dog_1,
          cost_staff = (sales_sal + sr_dev_sal)*1.095) %>% 
@@ -175,7 +175,7 @@ year_3 <- assumptions_3 %>%
          cost_deploy = (cloud_cost + apple_fee + google_fee + domain_cost) 
          * dogs$dog_3/dogs$dog_1,
          cost_transactions = rev_b2c/pct_service_fee/spend_per_service * paypal_fixed 
-         + rev_b2c/pct_service_fee * paypal_var,
+         + rev_b2c * paypal_var,
          cost_marketing = (social_ad + event_ad + store_ad) 
          * dogs$dog_3/dogs$dog_1,
          cost_staff = (sales_sal + sr_dev_sal + market_sal + jr_dev_sal)*1.095) %>% 
@@ -199,7 +199,7 @@ year_4 <- assumptions_4 %>%
          cost_deploy = (cloud_cost + apple_fee + google_fee + domain_cost) 
          * dogs$dog_4/dogs$dog_1,
          cost_transactions = rev_b2c/pct_service_fee/spend_per_service * paypal_fixed 
-         + rev_b2c/pct_service_fee * paypal_var,
+         + rev_b2c * paypal_var,
          cost_marketing = (social_ad + event_ad + store_ad) 
          * dogs$dog_4/dogs$dog_1,
          cost_staff = (sales_sal + sr_dev_sal + market_sal + jr_dev_sal)*1.095) %>% 
